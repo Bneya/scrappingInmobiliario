@@ -4,6 +4,11 @@ const API = require('./config/api')
 
 const prisma = new PrismaClient()
 
+// Configuration to fix prisma studio bad BigInt transformation
+// JSON.stringify(
+//     this,
+//     (key, value) => (typeof value === 'bigint' ? value.toString() : value) // return everything else unchanged
+// )
 
 // Order attributes of 1 model
 const orderModelAttributes = ({ attributes }) => {
@@ -21,7 +26,6 @@ const orderModelAttributes = ({ attributes }) => {
     const sizeBottom = parseFloat(sizeRaw[0]);
     const sizeTop = parseFloat(sizeRaw[2]);
 
-    // console.log(orderedAttr);
     return {
         numBeds,
         numBaths,
@@ -46,14 +50,12 @@ const orderModelUnitAttributes = ({ attributes }) => {
     const numBaths = bathroom ? parseInt(bathroom.split(" ")[0], 10) : null;
     const floor = unit_floor ? parseInt(unit_floor.split(" ")[1], 10) : null;
     const orientation = orderedAttr.facing;
-    console.log("-------flooooooooor", floor)
 
     // Clear size (more complex because not ordered)
     const sizeRaw = orderedAttr.scale_up.split("|")
     let totalSize, usefulSize, terraceSize;
     sizeRaw.forEach(elem => {
         const [ size, _, type ] = elem.trim().split(" ");
-        // console.log('size, m2, type', size, _, type);
         switch (type) {
             case 'totales':
                 totalSize = parseFloat(size)
@@ -73,57 +75,39 @@ const orderModelUnitAttributes = ({ attributes }) => {
         floor,
         orientation,
     }
-
 }
 
 // Order all model_units info
-const orderModelUnitsInfo = async ({ modelUnits }) => {
+const orderModelUnitsInfo = ({ modelUnits }) => {
     // For every model_unit, get all the info
-    const modelUnitsinfo = modelUnits.map((modelUnit) => {
+    const modelUnitsInfo = modelUnits.map((modelUnit) => {
         const unitAttr = orderModelUnitAttributes({
             attributes: modelUnit.attributes
         });
         return {
-            id: modelUnit.id,
-            modelId: modelUnit.model_id,
+            id: modelUnit.id.toString(),
+            modelId: modelUnit.model_id.toString(),
             name: modelUnit.name.text,
-            // size: modelUnit.description.text,
             pictureId: modelUnit.picture.id,
             ...unitAttr,
         }
     })
 
-    // modelUnitsinfo[0].name = 'aaaaaaamodificadooooooo'
-    // console.log(modelUnitsinfo);
-
-    // Guardar en DB
-    const upsertedUnits = await prisma.unit.createMany({
-        data: modelUnitsinfo,
-        skipDuplicates: true,
-    })
-    console.log('upsertedUnits', upsertedUnits)
-
+    return modelUnitsInfo;
 }
 
-// Obtiene la info de todos las unidades (model_units) de un tipo de dpto (model)
-const getAptInfo = async () => {
+// Guarda en DB la info de todos las unidades (model_units) de un modelo de dpto (model)
+const saveModelUnitsInfo = async ({ projectId, modelId }) => {
     // Esta request se envía al clickear cualquier modelo de un proyecto
-    const infoRaw = (await axios.get('https://www.portalinmobiliario.com/p/api/quotations/MLC535323359/modal?model_id=174476202465')).data.components[0];
-    // console.log(infoRaw);
+    const modelUnits = (await API.getModelUnits({ projectId, modelId })).components[0].model_units;
+    const modelUnitsInfo = orderModelUnitsInfo({ modelUnits });
 
-    // Componentes
-    const projectTitle = infoRaw.header.text;
-    const code = infoRaw.subtitle.text;
-    const address = infoRaw.full_address.text;
-    const { models, model_units } = infoRaw;
-    console.log('projectTitle', projectTitle);
-    console.log('code', code);
-    console.log('address', address);
-    console.log('models', models);
-    // console.log('model_units', model_units);
-
-    orderModelUnitsInfo({ modelUnits: model_units })
-
+    // Guardar en DB
+    const insertedUnits = await prisma.unit.createMany({
+        data: modelUnitsInfo,
+        skipDuplicates: true,
+    })
+    console.log(`Project ${projectId} | Model ${modelId} | Se insertaron ${insertedUnits.count} units`);
 }
 
 // Obtain all the model id of a projectId
@@ -132,41 +116,44 @@ const getProjectInfo = async ({ projectId }) => {
 
     // Parse info of project
     const title = projectInfo.header.text;
-    const code = projectInfo.subtitle.text;
+    const code = projectInfo.subtitle.text.split(" ")[1];
     const address = projectInfo.full_address.text;
     const { models } = projectInfo;
 
     // Save project info to DB
     const upsertedProject = await prisma.project.upsert({
         where: { id: projectId },
-        update: { title },
+        update: { title, code },
         create: { id: projectId, title, code, address }
     })
-    console.log('upsertedProject', upsertedProject)
+    console.log(`Upserted Project ${projectId} | Code ${code} | ${title}`)
 
     // Obtain data about the models
     const modelsInfo = models.map((model) => {
-        // Parte model attributes
+        // Obtain model attributes
         const modelAttrs = orderModelAttributes({
             attributes: model.attributes
         })
         return {
-            id: model.id,
+            id: model.id.toString(),
             projectId,
             picture: model.picture.id,
             ...modelAttrs,
         }
     })
 
-    console.log('modelsInfo', modelsInfo);
-
     // Insert models data into DB
-    await prisma.model.createMany({
+    const insertedModels = await prisma.model.createMany({
         data: modelsInfo,
         skipDuplicates: true,
     })
+    console.log(`Project ${projectId} | Se insertaron ${insertedModels.count} models`)
+
+    // For every model, save its unit Info in DB
+    modelsInfo.forEach(model => {
+        saveModelUnitsInfo({ projectId, modelId: model.id })
+    });
+
 }
 
-
-getAptInfo();
 getProjectInfo({ projectId: 'MLC535323359' });

@@ -6,20 +6,6 @@ const baseURL = 'https://www.portalinmobiliario.com/';
 // Axios instance configuration
 const responseHandler = (response) => {
     return response.data;
-    // const {
-    //     data: dataResponse,
-    // } = response
-
-    
-    // const { data, error, success } = dataResponse
-    // // console.log('-----------data procesada', data);
-    
-    // if (success) {
-    //     return data
-    // } else {
-    //     console.log('error', error)
-    //     return Promise.reject(error)
-    // }
 }
 
 const axiosInstance = axios.create({
@@ -29,8 +15,6 @@ const axiosInstance = axios.create({
     }
 })
 
-// console.log('???????????????????', axiosInstance)
-
 // Apply interceptors
 axiosInstance.interceptors.response.use(responseHandler, (error) =>
   Promise.reject(error),
@@ -39,5 +23,8 @@ axiosInstance.interceptors.response.use(responseHandler, (error) =>
 
 API.getProjectModels = ({ projectId }) =>
     axiosInstance.get(`p/api/quotations/${projectId}/modal`)
+API.getModelUnits = ({ projectId, modelId }) =>
+    axiosInstance.get(`p/api/quotations/${projectId}/modal?model_id=${modelId}`)
+
 
 module.exports = API;

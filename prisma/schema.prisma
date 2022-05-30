@@ -16,11 +16,14 @@ model Project {
   code    String
   address String
 
-  Models Model[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  models Model[]
 }
 
 model Model {
-  id         BigInt  @id
+  id         String  @id
   project    Project @relation(fields: [projectId], references: [id])
   numBeds    Int
   numBaths   Int
@@ -28,12 +31,15 @@ model Model {
   sizeTop    Float
   picture    String?
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
   projectId String
-  Unit      Unit[]
+  units     Unit[]
 }
 
 model Unit {
-  id          BigInt @id
+  id          String @id
   model       Model  @relation(fields: [modelId], references: [id])
   name        String
   pictureId   String
@@ -46,5 +52,8 @@ model Unit {
   orientation String
   priceUf     Int?
 
-  modelId BigInt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  modelId String
 }
