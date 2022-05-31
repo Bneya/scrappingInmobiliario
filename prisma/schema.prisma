@@ -11,10 +11,12 @@ datasource db {
 }
 
 model Project {
-  id      String @id
+  id      String  @id
   title   String
   code    String
-  address String
+  address String?
+  area    String?
+  type    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
@@ -25,10 +27,10 @@ model Project {
 model Model {
   id         String  @id
   project    Project @relation(fields: [projectId], references: [id])
-  numBeds    Int
-  numBaths   Int
-  sizeBottom Float
-  sizeTop    Float
+  numBeds    Int?
+  numBaths   Int?
+  sizeBottom Float?
+  sizeTop    Float?
   picture    String?
 
   createdAt DateTime @default(now())
@@ -39,17 +41,17 @@ model Model {
 }
 
 model Unit {
-  id          String @id
-  model       Model  @relation(fields: [modelId], references: [id])
-  name        String
-  pictureId   String
-  numBeds     Int
-  numBaths    Int
+  id          String  @id
+  model       Model   @relation(fields: [modelId], references: [id])
+  name        String?
+  pictureId   String?
+  numBeds     Int?
+  numBaths    Int?
   totalSize   Float?
   usefulSize  Float?
   terraceSize Float?
   floor       Int?
-  orientation String
+  orientation String?
   priceUf     Int?
 
   createdAt DateTime @default(now())

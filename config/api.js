@@ -25,6 +25,7 @@ API.getProjectModels = ({ projectId }) =>
     axiosInstance.get(`p/api/quotations/${projectId}/modal`)
 API.getModelUnits = ({ projectId, modelId }) =>
     axiosInstance.get(`p/api/quotations/${projectId}/modal?model_id=${modelId}`)
-
+API.getSearchPageHtml = ({ area, statusCode }) =>
+    axiosInstance.get(`venta/departamento/proyectos/${area}/_DEVELOPMENT*STATUS_${statusCode}`)
 
 module.exports = API;
