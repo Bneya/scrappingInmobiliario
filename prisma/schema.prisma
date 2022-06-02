@@ -22,11 +22,13 @@ model Project {
   updatedAt DateTime @default(now())
 
   models Model[]
+
+  @@map("Projects")
 }
 
 model Model {
   id         String  @id
-  project    Project @relation(fields: [projectId], references: [id])
+  projectId  String
   numBeds    Int?
   numBaths   Int?
   sizeBottom Float?
@@ -36,13 +38,15 @@ model Model {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  projectId String
-  units     Unit[]
+  project Project @relation(fields: [projectId], references: [id])
+  units   Unit[]
+
+  @@map("Models")
 }
 
 model Unit {
   id          String  @id
-  model       Model   @relation(fields: [modelId], references: [id])
+  modelId     String
   name        String?
   pictureId   String?
   numBeds     Int?
@@ -57,5 +61,7 @@ model Unit {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  modelId String
+  model Model @relation(fields: [modelId], references: [id])
+
+  @@map("Units")
 }
